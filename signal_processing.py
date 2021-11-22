@@ -115,9 +115,9 @@ magnitude_df = magnitude_spectrum(filtered_df, channels=['x_axis_dc','y_axis_dc'
 #magnitude_df_normalized = magnitude_spectrum_normalized(filtered_df, samples, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
 fft_df = fft_signal(filtered_df, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
 
-#PSD = fft_df * np.conj(fft_df) / samples
+PSD = fft_df * np.conj(fft_df) / samples
 #PSD = np.square(magnitude_df)
-PSD = np.square(abs(fft_df))
+#PSD = np.square(abs(fft_df))
 
 print(PSD)
 
