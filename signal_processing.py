@@ -1,9 +1,10 @@
 from numpy.core.fromnumeric import shape
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, welch, find_peaks
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.fft import fft, fftfreq, fftshift, rfft
 import numpy as np
+from scipy.integrate import quad
 
 """
 You want to take the signals
@@ -68,6 +69,36 @@ def magnitude_spectrum_normalized(signal_df, samples, channels):
 
     return magnitude_df
 
+def find_start_and_end(arr, low, high):
+    start = 0
+    stop = 0
+    for i in range(len(arr)):
+        if arr[i] > low and start == 0:
+            start = i
+        if arr[i] > high and stop == 0:
+            stop = i
+    return start, stop
+
+
+def do_stuff(dataset, fs, channels):
+    #75 samples per 3 seconds
+    samples = int(3/(1/fs))
+    start = 0
+    stop = samples
+    freq = int(samples/2)
+    for channel in channels:
+        #freq_axis = np.linspace(0, fs, samples)
+        df = dataset[channel][start:stop]
+        start = stop
+        print(f"{stop=}")
+        stop += stop
+        print(f"{stop=}")
+        print(df)
+        
+
+
+    
+
 # Band pass filter cut off frequencies
 lowcut = 3.0
 highcut = 12.0
@@ -82,8 +113,11 @@ df['time'] -= df['time'][0]
 fs = 1 / (df['time'][2] - df['time'][1])
 #T = (df['time'].iloc[-1] - df['time'][0])
 samples = df['time'].size
+#print(fs)
 T = 1 / fs
-#samples = int(T * fs * 100)
+#print(T)
+#samples = int(T * fs * 150)
+#print(samples)
 
 # Filter a noisy signal.
 t = np.linspace(0, df['time'][samples-1], samples)
@@ -100,12 +134,16 @@ dc_df = remove_dc(df, channels=['x_axis', 'y_axis', 'z_axis'])
 
 
 # Plot Bandpass filtered DC-free signal
+#y_dc = butter_bandpass_filter(dc_df['x_axis_dc'].head(150), lowcut, highcut, fs, order=9)
 y_dc = butter_bandpass_filter(dc_df['x_axis_dc'], lowcut, highcut, fs, order=9)
-#y_dc_y = butter_bandpass_filter(dc_df['y_axis_dc'], lowcut, highcut, fs, order=9)
-#y_dc_z = butter_bandpass_filter(dc_df['z_axis_dc'], lowcut, highcut, fs, order=9)
+y_dc_y = butter_bandpass_filter(dc_df['y_axis_dc'], lowcut, highcut, fs, order=9)
+y_dc_z = butter_bandpass_filter(dc_df['z_axis_dc'], lowcut, highcut, fs, order=9)
 
 
-plt.plot(t, y_dc, label='Filtered signal ( Hz) DC')
+plt.plot(t, y_dc, label='Filtered signal X ( Hz) DC')
+plt.plot(t, y_dc_y, label='Filtered signal Y ( Hz) DC')
+plt.plot(t, y_dc_z, label='Filtered signal Z ( Hz) DC')
+
 plt.legend()
 
 freq_bin = int(samples / 2 )
@@ -115,22 +153,39 @@ magnitude_df = magnitude_spectrum(filtered_df, channels=['x_axis_dc','y_axis_dc'
 #magnitude_df_normalized = magnitude_spectrum_normalized(filtered_df, samples, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
 fft_df = fft_signal(filtered_df, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
 
-PSD = fft_df * np.conj(fft_df) / samples
+#PSD = fft_df * np.conj(fft_df) / samples
 #PSD = np.square(magnitude_df)
-#PSD = np.square(abs(fft_df))
+PSD = np.square(abs(fft_df))
 
-print(PSD)
+
+low, high = find_start_and_end(freq_axis, 3 , 5)
+
 
 plt.figure(2)
-plt.plot(freq_axis[:freq_bin], magnitude_df['x_axis_dc_mag'][:freq_bin], label='Fourier')
+plt.plot(freq_axis[:freq_bin], magnitude_df['x_axis_dc_mag'][:freq_bin], label='X Fourier')
+plt.plot(freq_axis[:freq_bin], magnitude_df['y_axis_dc_mag'][:freq_bin], label='Y Fourier')
+plt.plot(freq_axis[:freq_bin], magnitude_df['z_axis_dc_mag'][:freq_bin], label='Z Fourier')
+plt.ylim(bottom=0)
 #plt.plot(freq_axis[:freq_bin], magnitude_df_normalized['x_axis_dc_mag'][:freq_bin], label='Fourier')
 
 plt.legend()
 
 plt.figure(3)
-plt.plot(freq_axis[:freq_bin], PSD['x_axis_dc_fft'][:freq_bin], label='Power')
-#plt.plot(freq_axis[:freq_bin], PSD['x_axis_dc_mag'][:freq_bin], label='Power')
+plt.plot(freq_axis[:freq_bin], PSD['x_axis_dc_fft'][:freq_bin], label='X Power')
+plt.plot(freq_axis[:freq_bin], PSD['y_axis_dc_fft'][:freq_bin], label='Y Power')
+plt.plot(freq_axis[:freq_bin], PSD['z_axis_dc_fft'][:freq_bin], label='Z Power')
 
+plt.ylim(bottom=0)
+#plt.plot(freq_axis[:freq_bin], PSD['x_axis_dc_mag'][:freq_bin], label='Power')
 plt.legend()
 
-plt.show()
+# PSD limit 350
+plt.figure(4)
+peaks, _ = find_peaks(PSD['y_axis_dc_fft'][:freq_bin], height=350)
+print(peaks)
+plt.plot(freq_axis[:freq_bin],PSD['y_axis_dc_fft'][:freq_bin])
+plt.plot(freq_axis[peaks], PSD['y_axis_dc_fft'][:freq_bin][peaks], "x")
+print(freq_axis[peaks])
+
+do_stuff(filtered_df, fs, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
+#plt.show()
