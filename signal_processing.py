@@ -82,19 +82,35 @@ def find_start_and_end(arr, low, high):
 
 def do_stuff(dataset, fs, channels):
     #75 samples per 3 seconds
+    uus_df = pd.DataFrame()
     samples = int(3/(1/fs))
     start = 0
     stop = samples
     freq = int(samples/2)
+    freq_a = np.linspace(0, fs, samples)
     for channel in channels:
         #freq_axis = np.linspace(0, fs, samples)
-        df = dataset[channel][start:stop]
-        start = stop
-        print(f"{stop=}")
-        stop += stop
-        print(f"{stop=}")
-        print(df)
+        for i in range((int(dataset[channel].size/samples)+1)):
+
+            if stop - 2 > dataset[channel].size:
+                df = dataset[channel][start:]
+            else:
+                df = dataset[channel][start:stop]
+            start = stop
+            stop += samples
+            print(df)
+            uus_df = fft(df[channel].to_numpy())
+            uus_PSD = np.square(abs(uus_df))
+            """ peaks, _ = find_peaks(uus_PSD[channel][:freq])
+            plt.figure()
+            plt.plot(freq_a[:freq],uus_PSD[channel][:freq])
+            plt.plot(freq_a[peaks], uus_PSD[channel][:freq][peaks], "x")
+            plt.plot(freq_a[:freq_bin], uus_PSD[channel][:freq], label='X Power') """
+        start = 0
+        stop = samples
         
+        
+    
 
 
     
@@ -104,7 +120,7 @@ lowcut = 3.0
 highcut = 12.0
 
 # Read raw accelerometer data
-df = pd.read_csv('accelerometer_data.csv', header=None)
+df = pd.read_csv('data/accelerometer_data.csv', header=None)
 df.columns = ['time', 'x_axis', 'y_axis', 'z_axis']
 
 # Change timestamps to seconds
@@ -181,11 +197,31 @@ plt.legend()
 
 # PSD limit 350
 plt.figure(4)
+
+peaks, _ = find_peaks(PSD['x_axis_dc_fft'][:freq_bin], height=350)
+print(peaks)
+if peaks.size > 0:
+    print('asd')
+plt.plot(freq_axis[:freq_bin],PSD['x_axis_dc_fft'][:freq_bin], label='X')
+plt.plot(freq_axis[peaks], PSD['x_axis_dc_fft'][:freq_bin][peaks], "x")
+print(freq_axis[peaks])
+
 peaks, _ = find_peaks(PSD['y_axis_dc_fft'][:freq_bin], height=350)
 print(peaks)
-plt.plot(freq_axis[:freq_bin],PSD['y_axis_dc_fft'][:freq_bin])
+if peaks.size > 0:
+    print('asd')
+plt.plot(freq_axis[:freq_bin],PSD['y_axis_dc_fft'][:freq_bin], label='Y')
 plt.plot(freq_axis[peaks], PSD['y_axis_dc_fft'][:freq_bin][peaks], "x")
 print(freq_axis[peaks])
 
-do_stuff(filtered_df, fs, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
-#plt.show()
+peaks, _ = find_peaks(PSD['z_axis_dc_fft'][:freq_bin], height=350)
+print(peaks)
+if peaks.size > 0:
+    print('asd')
+plt.plot(freq_axis[:freq_bin],PSD['z_axis_dc_fft'][:freq_bin], label='Z')
+plt.plot(freq_axis[peaks], PSD['z_axis_dc_fft'][:freq_bin][peaks], "x")
+print(freq_axis[peaks])
+plt.legend()
+#do_stuff(filtered_df, fs, channels=['x_axis_dc','y_axis_dc','z_axis_dc'])
+
+plt.show()
