@@ -9,7 +9,7 @@ python -m venv venv
 ## activate venv
 on mac and linux
 ```
-source/bin/activate
+source venv/bin/activate
 ```
 
 on windows CMD
@@ -18,7 +18,7 @@ on windows CMD
 ```
 on windows powershell
 ```
-\venv\Scripts\activate.ps1
+.\venv\Scripts\activate.ps1
 ```
 
 ## install requirements
